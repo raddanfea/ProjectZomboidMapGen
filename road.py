@@ -3,10 +3,10 @@ from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 
 
-def generate(mapsize):
+def generate(mapsize, num=5):
     plt.figure(figsize=(mapsize/100, mapsize/100))
 
-    x = np.linspace(5, 10, num=5, endpoint=True)
+    x = np.linspace(5, 10, num, endpoint=True)
 
     flist = []
     DB = 4
