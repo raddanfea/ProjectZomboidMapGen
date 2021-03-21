@@ -13,7 +13,7 @@ def generate(mapsize):
     rivers = range(0, round(mapsize / 3000))
     bendyness = 1
     if len(rivers) == 1 and np.random.rand() < 0.5:
-        rivers = 1
+        rivers = [1]
 
     for i in rivers:
         rng = default_rng()

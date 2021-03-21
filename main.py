@@ -3,6 +3,7 @@ import timeit
 import numpy
 import road
 import river
+from numba import njit
 
 from perlin_numpy import (
     generate_fractal_noise_2d
@@ -15,23 +16,24 @@ from multiprocessing import Process
 veg_parts = "./veg_parts/"
 land_parts = "./land_parts/"
 
-Sand = [210, 200, 160]
-Water = [0, 138, 255]
-Dirt = [120, 70, 20]
-Light_Grass = [145, 135, 60]
-Medium_Grass = [117, 117, 47]
-Dark_Grass = [90, 100, 35]
-Less_Trees_Dark_Grass = [64, 0, 0]
-Trees_Bush_Dark_Grass = [255, 0, 255]
-Trees_Dark_Grass = [127, 0, 0]
-Trees = [255, 0, 0]
-AllGrass = [0, 255, 0]
-Nothing = [0, 0, 0]
-Dark_Asphalt = [100, 100, 100]
-Dark_Pothole = [110, 100, 100]
 
+@njit
+def color_loop(world, lakes, roads, rivers, num=-1):
+    Sand = [210, 200, 160]
+    Water = [0, 138, 255]
+    Dirt = [120, 70, 20]
+    Light_Grass = [145, 135, 60]
+    Medium_Grass = [117, 117, 47]
+    Dark_Grass = [90, 100, 35]
+    Less_Trees_Dark_Grass = [64, 0, 0]
+    Trees_Bush_Dark_Grass = [255, 0, 255]
+    Trees_Dark_Grass = [127, 0, 0]
+    Trees = [255, 0, 0]
+    AllGrass = [0, 255, 0]
+    Nothing = [0, 0, 0]
+    Dark_Asphalt = [100, 100, 100]
+    Dark_Pothole = [110, 100, 100]
 
-def add_color(world, lakes, roads, rivers, num=""):
     land = np.zeros(world.shape + (3,))
     veg = np.zeros(world.shape + (3,))
     trace = 0
@@ -42,7 +44,6 @@ def add_color(world, lakes, roads, rivers, num=""):
         if trace == round(len(land) / 50):
             trace = 0
             percent += 2
-            print("\r   Coloring Thread " + str(num) + " " + str(percent) + "%", end="   ")
         for j in range(len(land)):
             if roads[i][j][0] != 255:
                 if np.random.rand() < 0.08:
@@ -88,8 +89,17 @@ def add_color(world, lakes, roads, rivers, num=""):
                         veg[i][j] = Nothing
                 if np.random.rand() < 0.02:
                     veg[i][j] = Nothing
+    return land, veg, num
 
-    if type(num) == int:
+
+def add_color(world, lakes, roads, rivers, num=-1):
+    # print("\r   Coloring Thread " + str(num) + " " + str(percent) + "%", end="   ")
+    land, veg, num = color_loop(world, lakes, roads, rivers, num)
+    rebuild(land, veg, num)
+
+
+def rebuild(land, veg, num):
+    if num != -1:
         land_img = Image.fromarray(land.astype('uint8'), mode='RGB')
         land_img.save(land_parts + str(num) + ".png")
         Image.fromarray(veg.astype('uint8'), mode='RGB').save(veg_parts + str(num) + ".png")
@@ -155,15 +165,15 @@ def multiprocess_image(world, lakes, road_array, river_array):
     river_lower_right = river_lower_third[2]
 
     process_data = [
-        (upper_left,    lake_upper_left,    road_upper_left,    river_upper_left, 0,),
-        (upper_middle,  lake_upper_middle,  road_upper_middle,  river_upper_middle, 1,),
-        (upper_right,   lake_upper_right,   road_upper_right,   river_upper_right, 2,),
-        (middle_left,   lake_middle_left,   road_middle_left,   river_middle_left, 3,),
+        (upper_left, lake_upper_left, road_upper_left, river_upper_left, 0,),
+        (upper_middle, lake_upper_middle, road_upper_middle, river_upper_middle, 1,),
+        (upper_right, lake_upper_right, road_upper_right, river_upper_right, 2,),
+        (middle_left, lake_middle_left, road_middle_left, river_middle_left, 3,),
         (middle_middle, lake_middle_middle, road_middle_middle, river_middle_middle, 4,),
-        (middle_right,  lake_middle_right,  road_middle_right,  river_middle_right, 5,),
-        (lower_left,    lake_lower_left,    road_lower_left,    river_lower_left, 6,),
-        (lower_middle,  lake_lower_middle,  road_lower_middle,  river_lower_middle, 7,),
-        (lower_right,   lake_lower_right,   road_lower_right,   river_lower_right, 8,)
+        (middle_right, lake_middle_right, road_middle_right, river_middle_right, 5,),
+        (lower_left, lake_lower_left, road_lower_left, river_lower_left, 6,),
+        (lower_middle, lake_lower_middle, road_lower_middle, river_lower_middle, 7,),
+        (lower_right, lake_lower_right, road_lower_right, river_lower_right, 8,)
     ]
 
     processes = []
@@ -184,7 +194,8 @@ def main(width=5):
     SCALE = (round(SIZE / 100), round(SIZE / 100))
 
     start = timeit.default_timer()
-    print("\rGenerating a world " + str(BLOCK_WIDTH) + "*" + str(BLOCK_WIDTH) + " size.  " + str(SIZE*SIZE) + " pixels")
+    print(
+        "\rGenerating a world " + str(BLOCK_WIDTH) + "*" + str(BLOCK_WIDTH) + " size.  " + str(SIZE * SIZE) + " pixels")
 
     partial_start = timeit.default_timer()
     print("\r Generating world perlin... ", end="")
@@ -215,7 +226,7 @@ def main(width=5):
     print('Time: ', "{:.2f}".format(partial_stop - partial_start), end="\n")
 
     partial_start = timeit.default_timer()
-    print("\r Coloring... ", end="\n")
+    print("\r Coloring...                ", end="")
     lake_img = Image.fromarray(lake_perlin)
     lake_img.save("./data/lakes.png")
 
@@ -251,7 +262,7 @@ def rebuild_images(SIZE):
 if __name__ == '__main__':
     args = sys.argv
     try:
-        arg_last = int(args[len(args)-1])
+        arg_last = int(args[len(args) - 1])
         if arg_last > 0:
             BLOCK_WIDTH = arg_last
             main(BLOCK_WIDTH)
