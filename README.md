@@ -2,7 +2,7 @@
 
 This is a small project aiming to generate terrain for the game called Project Zomboid. 
 
-It uses perlin fractal noise, numpy, scipy, matplotlib and pillow.
+It uses perlin fractal noise, numpy, scipy, matplotlib, pillow and numba.
 
 This project is uses **multiprocessing** to speed up image processing. 
 The image is split into 9 same sized chunks to ensure map data integrity and compatibility.
@@ -40,7 +40,7 @@ The generator creates ground (grass) and vegetation maps as output.
 
 ### Things I might do later, but feel free to do it yourself 
 
-- Optimize image processing (coloring)
+- Optimize image processing (coloring) ☑  @njit
 - Generate foraging zones because for some reason it isn't tied to the map
 - Better roads
 - Better lakes
